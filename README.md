@@ -31,24 +31,59 @@ Subject/
 ```
 
 ### 最终使用的图像：
+```
  Result/
   ├── mri/
       ├── T1_to_T2FLAIR_registered.mgz
       ├── T2_05.mgz
+```
 
 ### 最终使用的低信号层内外表面：
+```
  Result/
   ├── surf/
       ├── lh_hypo_layer.inner
       ├── lh_hypo_layer.outer
       ├── rh_hypo_layer.inner
       ├── rh_hypo_layer.outer
+```
 
 ### 皮层内外表面在Freesurfer的路径下
+```
  Result/
   ├── Freesurfer/
       ├──  ... (standard FreeSurfer outputs: lh.white, lh.pial, rh.white, rh.pial)
+```
 
+### 最终整体文件结构
+```
+BrainMLSR/
+├── Subject/
+│   ├── T1.nii.gz
+│   └── T2FLAIR.nii.gz
+│
+├── Result/
+│   ├── Freesurfer/
+│   │   └── ... (standard FreeSurfer outputs: lh.white, lh.pial, rh.white, rh.pial)
+│   │
+│   ├── mri/
+│   │   ├── T1_05.mgz
+│   │   ├── T1_to_T2FLAIR_registered.mgz
+│   │   ├── T2_05.mgz
+│   │   ├── t1.nii.gz
+│   │   ├── t2_flair.nii.gz
+│   │   └── run_recon.py
+│   │
+│   └── surf/
+│       ├── lh_hypo_layer.inner
+│       ├── lh_hypo_layer.outer
+│       ├── lh_init_hypo_layer.inner
+│       ├── lh_init_hypo_layer.outer
+│       ├── rh_hypo_layer.inner
+│       ├── rh_hypo_layer.outer
+│       ├── rh_init_hypo_layer.inner
+│       ├── rh_init_hypo_layer.outer
+```
 
 ## 具体处理流程
 ## 1. 皮层内外表面重建
