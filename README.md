@@ -7,30 +7,33 @@
   <em>Figure 1: pipeline of BrainMLSR.</em>
 </p>
 
-主要步骤
-1. 重建出皮层内外表面
-2. 通过BrainMLSR进行多信号层重建
-
-首先，安装环境依赖
+Main steps:
+Reconstruct the inner and outer cortical surfaces.
+Perform multi-signal layer reconstruction using BrainMLSR.
+First, install the required environment dependencies.
 ```
 pip install -r requirements.txt
 ```
-## 集成一键运行
-SUBJECT_DIR 是存储原始图像T1.nii.gz和T2FLAIR.nii.gz的路径。Result_Dir是输出路径。Code_Dir是本项目的代码路径。
-注意要加载符合requirements的python环境以及freesurfer
+## One-Click Execution Integration
+
+SUBJECT_DIR is the path containing the raw images T1.nii.gz and T2FLAIR.nii.gz.
+RESULT_DIR is the output directory.
+CODE_DIR is the path to this project's source code.
+
+Note: Ensure that a Python environment satisfying the requirements.txt is activated, and FreeSurfer is properly loaded.
 
 ```
 sbatch BrainMLSR.sh "$subject_path" "$result_dir" "#code_path"
 ```
 
-### 输入的图像结构：
+### Input Image Structure:
 ```
 Subject/
   ├── T1.nii.gz
   └── T2FLAIR.nii.gz
 ```
 
-### 最终使用的图像：
+### Final Images:
 ```
  Result/
   ├── mri/
@@ -38,7 +41,7 @@ Subject/
       ├── T2_05.mgz
 ```
 
-### 最终使用的低信号层内外表面：
+### Final Hypointense Layer Surfaces:
 ```
  Result/
   ├── surf/
@@ -48,14 +51,14 @@ Subject/
       ├── rh_hypo_layer.outer
 ```
 
-### 皮层内外表面在Freesurfer的路径下
+### Cortical Surfaces from FreeSurfer (stored under standard FreeSurfer output):
 ```
  Result/
   ├── Freesurfer/
       ├──  ... (standard FreeSurfer outputs: lh.white, lh.pial, rh.white, rh.pial)
 ```
 
-### 最终整体文件结构
+### Final Overall Directory Structure:
 ```
 BrainMLSR/
 ├── Subject/
@@ -85,31 +88,34 @@ BrainMLSR/
 │       ├── rh_init_hypo_layer.outer
 ```
 
-## 具体处理流程
-## 1. 皮层内外表面重建
-为了便于广泛使用，我们以使用freesurfer为例，进行预处理并且得到皮层内外表面。当然可以通过自己的方法得到皮层内外表面，只要保证：皮层内外表面的顶点必须一一对应并且具有相同的三角形面片关系。
-首先将T1和T2FLAIR序列的dicom通过dicom2niix转成nii图像。现在有的图像：T1.nii.gz，T2FLAIR.nii.gz。
+## Detailed Processing Workflow
+## 1. Cortical Inner and Outer Surface Reconstruction
+To facilitate broad usability, we use FreeSurfer as an example for preprocessing and generating the inner (white matter) and outer (pial) cortical surfaces. Alternatively, users may employ their own surface reconstruction methods, provided that:
+The inner and outer surfaces have vertex-wise correspondence, and
+They share the same triangular mesh topology.
+First, convert DICOM images of T1 and T2-FLAIR to NIfTI format using dcm2niix. The resulting files are: T1.nii.gz and T2FLAIR.nii.gz.
 
-### 1.1 图像预处理
-为了适配Freesurfer的情况，需要将图像进行标准化到0.5X0.5X0.5mm各向同性。
+### 1.1 Image Preprocessing
+To ensure compatibility with FreeSurfer, resample both images to isotropic 0.5×0.5×0.5 mm resolution:
 ```
 mri_convert T1.nii.gz T1_05.mgz -cs 0.5
 mri_convert T2.nii.gz T2FLAIR_05.mgz -cs 0.5
 ```
-### 1.2 图像配准 T1配准到T2FLAIR图像
-T1配准到T2FLAIR图像。为了将重建后的皮层与图像对齐，并且因为多信号层的信号在T2FLAIR图像上，我们尽量不动T2FLAIR图像，所以将T1配准到T2FLAIR。可以使用我们提供的配准代码。
+### 1.2  Image Registration: T1 to T2-FLAIR
+We register the T1 image to the T2-FLAIR space to align the reconstructed cortical surfaces with the T2-FLAIR image, since the intracortical signal layers are most visible in T2-FLAIR, we keep T2-FLAIR fixed and warp T1 accordingly. Use the provided registration script:
 ```
 python Step00_Register.py --fixed T2FLAIR_05.mgz --moving T1_05.nii.gz --output_dir T1_05_reg.nii.gz
 ```
-### 1.3 皮层内外表面重建
-用FreeSurfer基于T1进行皮层内外表面重建，具体freesurfer重建皮层表面可以参考freesurfer官网。其中，UII_5T替换成自己合适的路径。
+### 1.3 Cortical Surface Reconstruction
+Run FreeSurfer on the registered T1 image to reconstruct the white and pial surfaces. Replace "UII_5T" with your desired subject ID or output directory name.
 ```
 recon-all -all -i T1_05_reg.nii.gz -s "UII_5T" -openmp 8
 ```
 
-## 2.BrainMLSR进行多信号层表面重建
-### 2.1 初始表面提取
-通过梯度方法先得到低信号层的初始内外表面。如果是lh的话，就把所有的rh改成lh
+## 2. Multi-Signal Intracortical Layer Reconstruction Using BrainMLSR
+### 2.1 Initial Layer Surface Extraction
+Use a gradient-based method to generate initial estimates of the low-signal intracortical layer boundaries. 
+For the left hemisphere (lh), replace all rh prefixes with lh.
 ```
 python Step01_Surf_Initialization.py \
     --white  rh.white  \
@@ -119,15 +125,15 @@ python Step01_Surf_Initialization.py \
     --init_hypo_outer rh_init_hypo_layer.outer \
 ```
 
-### 2.2 多信号层表面优化
-通过能量函数对曲面进行优化。如果是lh的话，就把所有的rh改成lh.
+### 2.2 Multi-Signal Layer Surface Optimization
+Refine the initial surfaces by minimizing an energy function that incorporates image intensity, geometric smoothness, and topological constraints. Again, replace rh with lh for the left hemisphere.
 ```
 python Step02_Surf_optimization.py \
     --white_surf rh.white --init_hypo_inner rh_init_hypo_layer.inner --init_hypo_outer rh_init_hypo_layer.outer --pial_surf rh.pial \
     --T2_image T2FLAIR_05.mgz \
     --final_hypo_inner rh_hypo_layer.inner --final_hypo_outer rh_hypo_layer.outer
 ```
-各参数可以直接使用默认值，也可以进行设定。
+All parameters can be used with default values, or customized as needed:
 ```
 python Step03_Surf_optimization.py \
     --white_surf rh.white --init_hypo_inner rh_init_hypo_layer.inner --init_hypo_outer rh_init_hypo_layer.outer --pial_surf rh.pial \
