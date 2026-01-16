@@ -1,5 +1,5 @@
 # BrainMLSR
-## 1. BrainMLSR流程
+## 1. The pipeline of BrainMLSR
 
 <p align="center">
   <img src="figures/pipeline.png" width="500" />
