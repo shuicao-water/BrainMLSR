@@ -11,6 +11,8 @@ from scipy.optimize import minimize_scalar
 import os
 import math
 import argparse
+import tempfile
+import shutil
 from multiprocessing import Pool, cpu_count
 import nibabel as nib
 import numpy as np
@@ -30,10 +32,36 @@ def bm_to_Torig_data(brainmask_file):
     返回:
         tuple: 包含仿射变换矩阵和图像数据的元组。
     """
-    # 加载NIfTI文件
-    brainmask = nib.load(brainmask_file)
-    # 获取图像数据
-    brainmask_data = brainmask.get_fdata()
+    def _looks_like_uncompressed_nifti(file_path):
+        with open(file_path, 'rb') as f:
+            header = f.read(4)
+        if len(header) < 4:
+            return False
+        sizeof_hdr_le = int.from_bytes(header, byteorder='little')
+        sizeof_hdr_be = int.from_bytes(header, byteorder='big')
+        return sizeof_hdr_le == 348 or sizeof_hdr_be == 348
+
+    temp_nifti_path = None
+    try:
+        # 正常按文件后缀加载
+        brainmask = nib.load(brainmask_file)
+        brainmask_data = brainmask.get_fdata()
+    except nib.filebasedimages.ImageFileError as e:
+        # 某些输入文件内容是未压缩 .nii，但文件名误写成了 .nii.gz
+        if brainmask_file.lower().endswith('.nii.gz') and _looks_like_uncompressed_nifti(brainmask_file):
+            fd, temp_nifti_path = tempfile.mkstemp(suffix='.nii')
+            os.close(fd)
+            shutil.copyfile(brainmask_file, temp_nifti_path)
+            brainmask = nib.load(temp_nifti_path)
+            brainmask_data = brainmask.get_fdata()
+        else:
+            raise nib.filebasedimages.ImageFileError(
+                f"Failed to load image: {brainmask_file}. Original error: {e}"
+            ) from e
+    finally:
+        if temp_nifti_path and os.path.exists(temp_nifti_path):
+            os.remove(temp_nifti_path)
+
     # 检查是否为 .mgz（不区分大小写）
     if brainmask_file.lower().endswith('.mgz'):
         Torig = brainmask.header.get_vox2ras_tkr()

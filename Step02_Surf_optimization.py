@@ -6,6 +6,8 @@ import nibabel as nib
 from scipy.ndimage import sobel
 import argparse
 import os
+import tempfile
+import shutil
 
 
 
@@ -302,9 +304,34 @@ def compute_gradient_vector_xyz(input_image_path):
         grad_y_norm (np.ndarray): 二阶单位梯度 y 分量 (D, H, W)
         grad_z_norm (np.ndarray): 二阶单位梯度 z 分量 (D, H, W)
     """
-    # --- Step 1: Load original image ---
-    img = nib.load(input_image_path)
-    data = img.get_fdata()  # shape: (D, H, W)
+    def _looks_like_uncompressed_nifti(file_path):
+        with open(file_path, 'rb') as f:
+            header = f.read(4)
+        if len(header) < 4:
+            return False
+        sizeof_hdr_le = int.from_bytes(header, byteorder='little')
+        sizeof_hdr_be = int.from_bytes(header, byteorder='big')
+        return sizeof_hdr_le == 348 or sizeof_hdr_be == 348
+
+    temp_nifti_path = None
+    try:
+        # --- Step 1: Load original image ---
+        img = nib.load(input_image_path)
+        data = img.get_fdata()  # shape: (D, H, W)
+    except nib.filebasedimages.ImageFileError as e:
+        if input_image_path.lower().endswith('.nii.gz') and _looks_like_uncompressed_nifti(input_image_path):
+            fd, temp_nifti_path = tempfile.mkstemp(suffix='.nii')
+            os.close(fd)
+            shutil.copyfile(input_image_path, temp_nifti_path)
+            img = nib.load(temp_nifti_path)
+            data = img.get_fdata()
+        else:
+            raise nib.filebasedimages.ImageFileError(
+                f"Failed to load image: {input_image_path}. Original error: {e}"
+            ) from e
+    finally:
+        if temp_nifti_path and os.path.exists(temp_nifti_path):
+            os.remove(temp_nifti_path)
 
     # Determine Torig
     if input_image_path.lower().endswith('.mgz'):

@@ -95,21 +95,23 @@ The inner and outer surfaces have vertex-wise correspondence, and
 They share the same triangular mesh topology.
 First, convert DICOM images of T1 and T2-FLAIR to NIfTI format using dcm2niix. The resulting files are: T1.nii.gz and T2FLAIR.nii.gz.
 
-### 1.1 Image Preprocessing
-To ensure compatibility with FreeSurfer, resample both images to isotropic 0.5×0.5×0.5 mm resolution:
+
+### 1.1  Brain Extraction using Freesurfer
+We extract the brain from T1W and FLAIR images using Freesurfer.
 ```
-mri_convert T1.nii.gz T1_05.mgz -cs 0.5
-mri_convert T2.nii.gz T2FLAIR_05.mgz -cs 0.5
+mri_synthstrip -i "$T1_original" -o $T1Image_brain
+mri_synthstrip -i "$T2flair_original" -o $T2flair_brain
 ```
-### 1.2  Image Registration: T1 to T2-FLAIR
+
+### 1.1  Image Registration: T1 to T2-FLAIR
 We register the T1 image to the T2-FLAIR space to align the reconstructed cortical surfaces with the T2-FLAIR image, since the intracortical signal layers are most visible in T2-FLAIR, we keep T2-FLAIR fixed and warp T1 accordingly. Use the provided registration script:
 ```
-python Step00_Register.py --fixed T2FLAIR_05.mgz --moving T1_05.nii.gz --output_dir T1_05_reg.nii.gz
+python Step00_Register.py --fixed $T2flair_brain --moving $T1Image_brain --output_dir  $T1Image_brain_registered 
 ```
-### 1.3 Cortical Surface Reconstruction
+### 1.2 Cortical Surface Reconstruction
 Run FreeSurfer on the registered T1 image to reconstruct the white and pial surfaces. Replace "UII_5T" with your desired subject ID or output directory name.
 ```
-recon-all -all -i T1_05_reg.nii.gz -s "UII_5T" -openmp 8
+recon-all -all -i $T1Image_brain_registered -s "UII_5T" -openmp 8
 ```
 
 ## 2. Multi-Signal Intracortical Layer Reconstruction Using BrainMLSR
@@ -120,7 +122,7 @@ For the left hemisphere (lh), replace all rh prefixes with lh.
 python Step01_Surf_Initialization.py \
     --white  rh.white  \
     --pial rh.pial \
-    --T2flair T2FLAIR_05.mgz \
+    --T2flair $T2flair_brain \
     --init_hypo_inner rh_init_hypo_layer.inner \
     --init_hypo_outer rh_init_hypo_layer.outer \
 ```
@@ -130,14 +132,14 @@ Refine the initial surfaces by minimizing an energy function that incorporates i
 ```
 python Step02_Surf_optimization.py \
     --white_surf rh.white --init_hypo_inner rh_init_hypo_layer.inner --init_hypo_outer rh_init_hypo_layer.outer --pial_surf rh.pial \
-    --T2_image T2FLAIR_05.mgz \
+    --T2_image $T2flair_brain\
     --final_hypo_inner rh_hypo_layer.inner --final_hypo_outer rh_hypo_layer.outer
 ```
 All parameters can be used with default values, or customized as needed:
 ```
 python Step03_Surf_optimization.py \
     --white_surf rh.white --init_hypo_inner rh_init_hypo_layer.inner --init_hypo_outer rh_init_hypo_layer.outer --pial_surf rh.pial \
-    --T2_image T2FLAIR_05.mgz \
+    --T2_image $T2flair_brain \
     --final_hypo_inner rh_hypo_layer.inner --final_hypo_outer rh_hypo_layer.outer \
     --alpha_inner 3.0 --alpha_outer 3.0 --beta_inner 1.0 --beta_middle 1.0 --beta_outer 1.0 --gamma_inner 0.5 --gamma_outer 0.5 \
     --learning_rate 0.01 --iterations 80 --tol 1e-6

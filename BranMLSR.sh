@@ -109,58 +109,71 @@ T2flair_original="$Image_Dir/t2_flair.nii.gz"
 
 # # ========================================================== 2. 去骨 (选做) ==========================================================================================
 
-# # mri_synthstrip -i input.nii.gz -o stripped.nii.gz
-# T1Image_brain="$Image_Dir/t1_brain.nii.gz"
-# T2flair_brain="$Image_Dir/t2_flair_brain.nii.gz"
+# mri_synthstrip -i input.nii.gz -o stripped.nii.gz
+T1Image_brain="$Image_Dir/t1_brain.nii.gz"
+T2flair_brain="$Image_Dir/t2_flair_brain.nii.gz"
 
-# mri_synthstrip -i "$T1Image" -o $T1Image_brain
-# mri_synthstrip -i "$T2flair" -o $T2flair_brain
+mri_synthstrip -i "$T1Image" -o $T1Image_brain
+mri_synthstrip -i "$T2flair" -o $T2flair_brain
 
-# # 检查复制是否成功
-# if [ $? -eq 0 ]; then
-#     echo "图像去骨完成"
-# else
-#     echo "去骨失败"
-#     exit 1
-# fi
-
-# 如果不做去颅骨，就用下面这个代码。否则就注释下面两行 用上面一行。或者在T2 convert到0.5mm后进行去颅骨
-T1Image_brain=$T1Image_original
-T2flair_brain=$T2flair_original
-
-# ========================================================== 3. t2flair 和 t1 改成 0.5mm ==========================================================================================
-echo "开始执行 t2flair 和 t1 改成 0.5mm..."
-# 定义输入和输出路径
-CONVERT_T1_input_file=$T1Image_brain
-CONVERT_T1_output_file="$Image_Dir/T1_05.mgz"
-# 确保输出目录存在
-output_dir=$(dirname "$CONVERT_T1_output_file")
-mkdir -p "$output_dir"
-
-# 执行 mri_convert 命令
-echo "T1 开始执行 mri_convert..."
-mri_convert "$CONVERT_T1_input_file" "$CONVERT_T1_output_file" -cs 0.5
-
-# 定义输入和输出路径
-CONVERT_T2_input_file=$T2flair_brain
-CONVERT_T2_output_file="$Image_Dir/T2_05.mgz"
-# 确保输出目录存在
-output_dir=$(dirname "$CONVERT_T2_output_file")
-mkdir -p "$output_dir"
-
-# 执行 mri_convert 命令
-echo "T2FLAIR 开始执行 mri_convert..."
-mri_convert "$CONVERT_T2_input_file" "$CONVERT_T2_output_file" -cs 0.5
-
-# 检查命令是否成功执行
+# 检查复制是否成功
 if [ $? -eq 0 ]; then
-    echo "mri_convert 成功完成！"
+    echo "图像去骨完成"
 else
-    echo "mri_convert 执行失败！"
+    echo "去骨失败"
     exit 1
 fi
 
-echo "完成执行 t2flair 和 t1 改成 0.5mm..."
+# # 如果不做去颅骨，就用下面这个代码。否则就注释下面两行 用上面一行。或者在T2 convert到0.5mm后进行去颅骨
+# T1Image_brain=$T1Image_original
+# T2flair_brain=$T2flair_original
+
+# ========================================================== 3. t2flair 和 t1 改成 0.5mm ==========================================================================================
+# echo "开始执行 t2flair 和 t1 改成 0.5mm..."
+# # 定义输入和输出路径
+# CONVERT_T1_input_file=$T1Image_brain
+# CONVERT_T1_output_file="$Image_Dir/T1_05.mgz"
+# # 确保输出目录存在
+# output_dir=$(dirname "$CONVERT_T1_output_file")
+# mkdir -p "$output_dir"
+
+# # 执行 mri_convert 命令
+# echo "T1 开始执行 mri_convert..."
+# mri_convert "$CONVERT_T1_input_file" "$CONVERT_T1_output_file" -cs 0.5
+
+# # 定义输入和输出路径
+# CONVERT_T2_input_file=$T2flair_brain
+# CONVERT_T2_output_file="$Image_Dir/T2_05.mgz"
+# # 确保输出目录存在
+# output_dir=$(dirname "$CONVERT_T2_output_file")
+# mkdir -p "$output_dir"
+
+# # 执行 mri_convert 命令
+# echo "T2FLAIR 开始执行 mri_convert..."
+# mri_convert "$CONVERT_T2_input_file" "$CONVERT_T2_output_file" -cs 0.5
+
+# # 检查命令是否成功执行
+# if [ $? -eq 0 ]; then
+#     echo "mri_convert 成功完成！"
+# else
+#     echo "mri_convert 执行失败！"
+#     exit 1
+# fi
+
+# echo "完成执行 t2flair 和 t1 改成 0.5mm..."
+
+
+CONVERT_T1_output_file=$T1Image_brain
+CONVERT_T2_output_file=$T2flair_brain
+
+# # 检查命令是否成功执行
+# if [ $? -eq 0 ]; then
+#     echo "无mri_convert 成功完成！"
+# else
+#     echo "无mri_convert 执行失败！"
+#     exit 1
+# fi
+
 
 
 # ========================================================== 2. t1 配准到 t2flair  ==========================================================================================
