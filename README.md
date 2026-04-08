@@ -103,12 +103,12 @@ mri_synthstrip -i "$T1_original" -o $T1Image_brain
 mri_synthstrip -i "$T2flair_original" -o $T2flair_brain
 ```
 
-### 1.1  Image Registration: T1 to T2-FLAIR
+### 1.2  Image Registration: T1 to T2-FLAIR
 We register the T1 image to the T2-FLAIR space to align the reconstructed cortical surfaces with the T2-FLAIR image, since the intracortical signal layers are most visible in T2-FLAIR, we keep T2-FLAIR fixed and warp T1 accordingly. Use the provided registration script:
 ```
 python Step00_Register.py --fixed $T2flair_brain --moving $T1Image_brain --output_dir  $T1Image_brain_registered 
 ```
-### 1.2 Cortical Surface Reconstruction
+### 1.3 Cortical Surface Reconstruction
 Run FreeSurfer on the registered T1 image to reconstruct the white and pial surfaces. Replace "UII_5T" with your desired subject ID or output directory name.
 ```
 recon-all -all -i $T1Image_brain_registered -s "UII_5T" -openmp 8
